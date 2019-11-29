@@ -1,0 +1,67 @@
+version: "3.1"
+
+services:
+
+  pingdirectory:
+    image: pingidentity/pingdirectory:edge
+    environment:
+      - SERVER_PROFILE_URL=https://github.com/robpieperping/Demo.git
+      - SERVER_PROFILE_PATH=baseline/pingdirectory
+      - SERVER_PROFILE_PARENT=LICENSE
+      - SERVER_PROFILE_LICENSE_URL=https://github.com/robpieperping/Demo.git
+      - SERVER_PROFILE_LICENSE_PATH=licenses/pingdirectory
+      # - VERBOSE=true
+    ports:
+      - 1636:636
+      - 1443:443
+      - 1389:389
+    networks:
+      - pingnet-internal
+
+  pingaccess:
+    image: pingidentity/pingaccess:1906
+    command: wait-for pingfederate:9031 -t 420 -- entrypoint.sh start-server
+    environment:
+      - SERVER_PROFILE_URL=https://github.com/jblantz/Demo-POC.git
+      - SERVER_PROFILE_PATH=baseline/pingaccess
+      - SERVER_PROFILE_PARENT=LICENSE
+      - SERVER_PROFILE_LICENSE_URL=https://github.com/robpieperping/Demo.git
+      - SERVER_PROFILE_LICENSE_PATH=licenses/pingaccess
+    ports:
+      - 443:443
+      - 9000:9000
+    networks:
+      - pingnet-dmz
+
+  pingfederate:
+    image: pingidentity/pingfederate:edge
+    command: wait-for pingdirectory:389 -t 300 -- entrypoint.sh start-server
+    environment:
+      - SERVER_PROFILE_URL=https://github.com/robpieperping/Demo.git
+      - SERVER_PROFILE_PATH=baseline/pingfederate
+      - SERVER_PROFILE_PARENT=LICENSE
+      - SERVER_PROFILE_LICENSE_URL=https://github.com/robpieperping/Demo.git
+      - SERVER_PROFILE_LICENSE_PATH=licenses/pingfederate
+    ports:
+      - 9031:9031
+      - 9999:9999
+
+    networks:
+      - pingnet-dmz
+      - pingnet-internal
+          # aliases:
+          #   - pingfederate-admin
+
+
+  pingdataconsole:
+    image: pingidentity/pingdataconsole:edge
+    ports:
+      - 8080:8080
+      - 8443:8443
+    networks:
+      - pingnet-internal
+      - pingnet-dmz
+
+networks:
+    pingnet-internal:
+    pingnet-dmz:
